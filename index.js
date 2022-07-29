@@ -1,3 +1,4 @@
+const { read } = require('fs');
 const puppeteer = require('puppeteer');
 const readlineSync = require('readline-sync');
 const accents = require('remove-accents');
@@ -8,70 +9,75 @@ async function translate(){
     const page = await browser.newPage();
     await page.goto('https://translate.google.com.br');
 
-    var setBaseLang;
-    var setFinalLang;
+    var langIndex;
 
     //-----SET THE BASE LANGUAGE------
     do{
-
-        if(setBaseLang == 'BLNF'){
+        if(langIndex == 0){
             console.log('Base language not found. Insert again!');
         }
-        var baseLang = readlineSync.question('Base language: ');
 
-        setBaseLang = await page.evaluate((baseLang) => {
-            var found = false
-            var countLang = 0;
-
+        var baseLang = await readlineSync.question('Base language: ');
+        var langs = [];
+       
+        langs = await page.evaluate((langs) => {
             document.querySelectorAll('div.Llmcnf').forEach((lang) => {
-                if(lang.innerHTML.toLowerCase() == baseLang.toLowerCase()){
-                    countLang++;
-
-                    if(countLang == 1){
-                        found = true;
-                        return lang.click();
-                    }
-                }
+                langs.push(lang.innerHTML.toLowerCase());
             });
+            return langs;
+        },langs);
+        
+        var langIndex = countLang = 0;
+        langs.forEach((lang, i) => {
+            if(accents.remove(lang.toLowerCase()) == baseLang.toLowerCase()){
+                countLang++;
 
-            if(!found){
-                //Base Language Not Found
-                return 'BLNF';
+                if(countLang == 1){
+                    langIndex = i;
+                    return;
+                }
             }
-        }, baseLang, accents);
+        });
 
-    }while(setBaseLang == 'BLNF');
+        await page.evaluate((langIndex) => {
+            return document.querySelectorAll('div.Llmcnf')[langIndex].click();
+        }, langIndex);
+
+    }while(langIndex == 0);
 
     //-----SET THE FINAL LANGUAGE------
     do{
 
-        if(setFinalLang == 'FLNF'){
+        if(langIndex == 0){
             console.log('Final language not found. Insert again!');
         }
         var finalLang = readlineSync.question('Translate to: ');
-
-        setFinalLang = await page.evaluate((finalLang) => {
-            var found = false
-            var countLang = 0;
-    
+        var langs = [];
+       
+        langs = await page.evaluate((langs) => {
             document.querySelectorAll('div.Llmcnf').forEach((lang) => {
-                if(lang.innerHTML.toLowerCase() == finalLang.toLowerCase()){
-                    countLang++;
-                    
-                    if(countLang == 2){
-                        found = true;
-                        return lang.click();
-                    }
-                }
+                langs.push(lang.innerHTML.toLowerCase());
             });
-    
-            if(!found){
-                //Final Language Not Found
-                return 'FLNF';
-            }
-        }, finalLang);
+            return langs;
+        },langs);
+        
+        var langIndex = countLang = 0;
+        langs.forEach((lang, i) => {
+            if(accents.remove(lang.toLowerCase()) == finalLang.toLowerCase()){
+                countLang++;
 
-    }while(setFinalLang == 'FLNF');
+                if(countLang == 2){
+                    langIndex = i;
+                    return;
+                }
+            }
+        });
+
+        await page.evaluate((langIndex) => {
+            return document.querySelectorAll('div.Llmcnf')[langIndex].click();
+        }, langIndex);
+
+    }while(langIndex == 0);
 
     var phrase = readlineSync.question('Phrase to translate: ');
     //-----INSERTS THE PHRASE ON THE GOOGLE TRANSLATOR------
